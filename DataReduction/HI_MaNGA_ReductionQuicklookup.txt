@@ -1,0 +1,45 @@
+Reduction Steps: 
+
+CUSTOM ROUTINES NEEDED
+mygetps.pro
+rezoom.pro
+rfispike.pro
+asciiout.pro
+getpeak.pro
+quickwidth.pro
+mygmeasure.pro
+myawv.pro
+
+filein,’’
+summary
+sclear
+mygetps,x,x
+fileout,’’
+keep
+header
+trim edges
+(show x-axis in channels to id channel number to trim to)
+replace,0,132,/blank
+replace,3952,5000,/blank
+keep
+rfispike (if needed)
+keep
+boxcar,4,/decimate
+keep
+hanning
+keep
+set region (for baseline fit)
+bshape,nfit=n,color=2550
+baseline
+zline
+asciiout,’’ (make sure showing x-axis in km/s)
+
+NON-DETECTION
+stats,/full (for rms)
+HImasslimit
+
+MEASURING WIDTH
+getpeak (to get peak)
+stats (to get rms)
+quickwidth,peak,rms (in Jy)
+HImass

@@ -1,18 +1,11 @@
-PRO asciiout,reducer,root
+PRO asciiout,reducer
 ; A program to create a ascii data file for a reduced HI profile, in
 ; order to make plotting easier. 
 ; Version of March 2017
 ; Based on parts of write_ascii.pro, header.pro
 ; 
-
-	if (n_elements(root) eq 0) then $
- 	root='junk'
-
 	if (n_elements(reducer) eq 0) then $
  	reducer='HI-MaNGA Team'
-
-	file=root+'.txt'
-	openw,lun,file,/get_lun	
 
 ; Code from header.pro
         if (n_elements(dc) eq 0) then dc = !g.s[0]
@@ -31,6 +24,9 @@ PRO asciiout,reducer,root
            return
         endif
 
+        root=strtrim(dc.source)
+	file=root+'.txt'
+	openw,lun,file,/get_lun	
 
         radecValue = getradec(dc,/quiet)
         radec=strtrim(adstring(radecValue[0],radecValue[1],0),2) ; RA,DEC string
@@ -45,7 +41,7 @@ PRO asciiout,reducer,root
         printf,lun,'################################################################################'
         printf,lun,'# Telescope:   Robert C. Bryd Green Bank Telescope'
         printf,lun,'# Beam Size:   9.0 [arcminutes] FWHM'
-        printf,lun,'# Object (MaNGA plate-ifu format): ', leftjustify(dc.source,24)
+        printf,lun,'# Object (MaNGA plate-ifu format): ', root
         printf,lun,'# RA Dec (J2000): ', radec
         printf,lun,'# Rest Frequency  1420.4058 [MHz]'
         printf,lun,'# Central velocity [km/s]: ',vel 

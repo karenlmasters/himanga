@@ -1,0 +1,312 @@
+REDUCING GBT HI GLOBAL PROFILES
+*******************************
+
+To follow these instructions you need to have GBTIDL installed on your computer
+(http://gbtidl.sourceforge.net/)
+
+In the directory this is installed type > ./gbtidl 
+*or* in you .myrc/.cshrc have a line
+
+alias gbtidl '{COMPLETE PATH OF INSTALLATION DIRECTORY}/gbtidl'
+(eg. for me it's alias gbtidl '/data/raspberry0/kmasters/mygbtidl/gbtidl/gbtidl')
+
+>gbtidl
+
+CUSTOM ROUTINES NEEDED: 
+mygetps.pro
+rezoom.pro
+rfispike.pro
+asciiout.pro
+getpeak.pro
+quickwidth.pro
+mygmeasure.pro
+myawv.pro
+GPSflag.pro
+
+Put these in a directory in your IDL path. 
+
+*******************************
+
+Data are saved in a single fits file per observing session. You can find all the observing logs and session numbers at: 
+https://trac.sdss.org/wiki/MANGA/Ancillary/HIMaNGA/GBTObserving
+(need to register for access to this page)
+
+I will give you fits files for sessions as you need them. You will start with the Stripe 82 sessions. Session 03, 04, 08
+
+Information per galaxy is here: https://docs.google.com/spreadsheets/d/1pZcfGgHlVXxMvMm-v4jAPsgf2gxFLI0oWSITrE9glpY/edit?pref=2&pli=1#gid=0 (this also have information on data I’ve already reduced). 
+
+To load data into GBTIDL
+************************
+GBTIDL ->filein,’AGBT16A_095_20/AGBT16A_095_20.raw.vegas/AGBT16A_095_20.raw.vegas.A.fits'
+
+Make a data reduction log 
+*************************
+eg. a file Apr02_reduction.log 
+- keep a log of everything you do to the data from this night. Call this log ‘ReductionLogFrederika_Session20.txt’
+
+Quick look at the data
+**********************
+
+GBTIDL -> summary
+
+Should result in something like this: 
+
+  Scan           Source      Vel    Proc Seq    RestF nIF nInt nFd     Az    El
+-------------------------------------------------------------------------------
+     7       8618-12703  11343.3   OnOff   1    1.420   1   31   1  124.1  50.7
+     8       8618-12703  11343.3   OnOff   2    1.420   1   31   1  126.4  52.0
+     9       8618-12703  11343.3   OnOff   1    1.420   1   31   1  127.2  52.4
+    10       8618-12703  11343.3   OnOff   2    1.420   1   31   1  129.7  53.6
+    11       8618-12703  11343.3   OnOff   1    1.420   1   31   1  130.6  54.0
+    12       8618-12703  11343.3   OnOff   2    1.420   1   31   1  133.3  55.2
+
+This will look familiar from the log for the night, which may include this. Notice that scans are in pairs called OnOff 0 and OnOff 1. 
+To get anything useful you need both in a pair to be present. It's common to take 
+multiples of these pairs on a given source.
+
+To have a quick look at all the data from source 8618-12703: 
+
+GBTIDL -> quicklook,7,3
+(note the 3 means 3 pairs on ONOFF, if there are more or less use a different number)
+
+STARTING THE DATA REDUCTION FOR REAL
+************************************
+Combining the data for a give source
+************************************
+In most cases all the data for a given source will be taken consequtively on a given 
+run (so is all in one file). This is the easy case. You can check that this is the 
+case in the file: https://docs.google.com/spreadsheets/d/1pZcfGgHlVXxMvMm-v4jAPsgf2gxFLI0oWSITrE9glpY/edit?pref=2&pli=1#gid=0
+
+Galaxies with data from more than one night need to be dealt with separately (for 
+now move on, but make a special note for me to come and show you how to do this!). 
+There will also be cases with significant interference (RFI) from the GPS satellies which makes some  of the data unusable. See below for what to do in this case.
+
+Normal routine:
+Clear the GBTIDL buffer:
+GBTIDL -> sclear
+
+Grab all the data from this galaxy and average it.
+mygetps,7,3
+
+This will look very different from the output of quicklook, since we will later do 
+significant smoothing in the frequency direction (which is done as part of quickly). But for the final reduction, first we want to remove bad channels.
+
+
+To check what you have accumulated: 
+
+GBTIDL -> header
+--------------------------------------------------------------------------------
+Proj: AGBT16A_095_20   Src   : 8618-12703                  Obs : Zachary Pace   
+
+Scan:         7        RADec :  21 17 48.4  +11 39 38     Fsky:   1.368803 GHz
+Int :         1        Eqnx  :  2000.0                    Frst:   1.420405 GHz
+Pol :         I        V     :  11343.3      OPTI-BAR     BW  :  23.438    MHz
+IF  :         0        AzEl  :  124.109      50.750       delF:   5.722    kHz
+Feed:         1        Gal   :   62.498     -25.304       Exp :  817.0     s
+Proc:     OnOff        UT    : +11 19 50.0   2016-04-08   Tcal:    1.43    K
+Seqn:         1        LST/HA: +19 09 09.1   -2.14        Tsys:   16.38    K
+--------------------------------------------------------------------------------
+
+(which gives a bunch of information about the first observation of the set, and also the total integration time)
+
+We want to make a file for each of the galaxies to save all the steps of the reduction:
+
+GBTIDL -> fileout,'8618-12703.fits'
+GBTIDL -> keep
+
+Trim Edges
+***********
+
+Now trim the edges of the spectrum (which are always bad) and keep the output. The numbers below are in units of channels and are usually about right, but use your judgement.
+
+GBTIDL -> replace,0,150,/blank
+GBTIDL -> replace,3950,5000,/blank
+GBTIDL -> keep
+
+************************************************************************************
+* IF THERE IS GPS PRESENT
+
+GPS = global positioning satellite. The signal from this usually ruins all the data is coincides with, so we flag all of it. 
+
+There is a routine GPSflag to step through the data to do this. It may have been done already (I often do it while observing), but if not come find me and we’ll work through it together). 
+
+************************************************************************************
+
+Remove other RFI
+****************
+
+RFI = radio frequency interference can affect a few channels. We’ll smooth later, so we can safely remove several channels: 
+
+This allows you to zoom in: 
+GBTIDL -> rezoom, x1, x2 
+
+GBTIDL -> unzoom (resets zoom level)
+
+This is an interactive routine (i.e. you click on the spike). 
+GBTIDL -> rfispike (if needed)
+
+** Keep going with this until all the RFI is gone 
+** (you'll have to rezoom a couple of times probably. Once you're done 
+** save the spectrum to the output file
+
+
+When you are happy it’s all clean: 
+GBTIDL -> keep
+
+Don’t like what you did: 
+
+This will get the previous saved steps. E.g. if the raw data is 0, trimmed edges are saved in 1.
+GBTIDL -> kgetrec,1
+
+Smoothing in Freq.
+*****************
+
+**We boxcar smooth by a factor of 4:
+
+GBTIDL -> boxcar,4,/decimate
+GBTIDL -> keep
+
+** '/decimate' compresses the spectrum (ie. it doesn't save 4 records of the same 
+** amount across the original 4 channels we smooth over.
+
+** We now Hanning smooth (ie. smooth with a 0.25:0.5:0.25 function over 3 channels) 
+** which is usually done in HI data.
+
+GBTIDL ->hanning
+GBTIDL -> keep
+
+Baseline Subtract
+*****************
+
+ We now remove any left-over baseline structure. Usually a 1st, 2nd or 3rd order polynomial is fine. Here we'll use 3rd order. 
+
+**Put in a zero line
+
+GBTIDL -> zline
+
+** First set the region you want to fit the baseline too.
+GBTIDL -> setregion
+Use the left button to mark the region and the right button to exit
+** The region should get as close to the galaxy signal as possible, but not include 
+** any of it. If there is a lot of structure we may want to exclude the outer 
+** regions of the spectrum (only the signal is important), but usually fitting most 
+** of the signal free spectrum is fine.
+
+** Now try baselines of different shapes
+GBTIDL -> bshape,nfit=1
+** n=1 clearly no good here
+GBTIDL -> bshape,nfit=2
+** Also no good. To change the colour of the line us color=2550 (some 4 digit 
+** number).
+GBTIDL -> bshape,nfit=3,color=2550
+** 3rd order is OK. Try 4 in case
+GBTIDL -> bshape,nfit=4,color=2551
+** no big improvement - go back to 3rd order.
+
+** now actually subtract this fit:
+GBTIDL -> baseline
+
+** save this final spectrum which is what we will measure galaxy properties on.
+GBTIDL -> keep
+
+** save as an ascii file (for easier plotting later) 
+asciiout,’’ (make sure showing x-axis in km/s)
+
+MEASURING GALAXY PROPERTIES
+***************************
+Now is the fun bit - actually measuring properties for the galaxies.
+This uses:
+
+getgain.pro
+mygetps.pro
+mygmeasure.pro
+myawv.pro
+himass.pro
+himasslimit.pro
+
+** First measure the peak flux and gain. Gain is used to covert from antenna 
+** temperature to mJy (milli-Janskys) which is the flux unit of favour for radio 
+** astronomers. You divide the flux in K by the gain to get the flux in Jy (ie gain 
+** is in K/Jy; basically it measures the sensitiviy of the telescope, and it 
+** depends on zenith angle which is why we calculate it for each separate galaxy.) 
+
+GBTIDL -> getpeak
+Click on either side of profile, low vel side first
+       4688.9507       5324.3921
+Peak is:      0.044051273
+Gain =        2.0164131
+
+** So in this example the peak flux is 44.1 mK, and the gain is 2.02 K/Jy. 
+** Now measure the rms noise of the spectrum using:
+
+GBTIDL -> stats
+Click twice to define stats region
+    Chans    bchan    echan        Xmin        Xmax        Ymin        Ymax
+      189       36      224      5307.2      6313.9  -0.0078110   0.0050715
+
+                       Mean      Median         RMS    Variance        Area
+                 0.00011556  0.00018212   0.0021946  4.8162E-06     0.11733
+
+** this must be done on a relatively flat part of the baseline subtracted signal free
+** spectrum - not so easy in this example (usually it's easier). So the noise is
+** 2.2 mK. Meaning this galaxy has S/N=20. Not bad!
+
+** Now we get to the main goal of all this and measure the widths in various ways.
+
+GBTIDL -> quickwidth,0.0441,0.0022
+** This need the peak flux and rms as an input to calculate the measurement errors
+
+** So what is all this? Basically this calculates the width and the area (and the 
+** central velocity) of the profile in a bunch of different ways. WM50 calculates 
+** the width at 50% of the mean flux in the area of interest. WP50 and WP20 
+** calculate it at 50/20% of the peak flux. W2P50 calculate the velocity at 50% of 
+** the peaks on either side, and measures the difference between these two. WF50 
+** fits polynomials (which are overplotted at the end) to either side of the profile
+** and measures the difference between 50% of the peak on either side. Which is 
+** better? Well the first few are easier and more commonly what's reported, but my 
+** collaborator Chris Springob says the last is more reliable - my solution is to 
+** do all of them for now!
+
+CALCULATE the HI MASS
+**********************
+
+GBTIDL -> himass,0.10,11343
+The total HI flux is in Jy.km/s     0.100000
+LUMDIST: H0: 70 Omega_m: 0.30 Lambda0 0.70 q0: -0.55 k:  0.00
+ Distance (in Mpc) is =        166.73105
+The HI mass (log MHI/Msun) is:        8.8162083
+
+***You need to make a record of this. Format to fill in: 
+
+#plateifu   vopt Session Exp   rms   peak  snr FHI  logMHI VHI   eV    WM50 WP50 WP20 W2P50 WF50 Pr     Pl    ar       br   al      bl      Notes
+7991-12704  7496 02      897.1 1.54  7.26  4.7 0.96  9.43  7497  22.52  238  212  244  229   225   7.26   6.63  20.97   0.16   8.84  -0.06  -
+7991-3704   8234 02      598.2 1.68  9.92  5.9 0.98  9.52  8098  64.94  205   92  208  119   134   9.92   9.04   7.52   0.05   6.83  -0.05  -
+
+
+***Sometimes weak detections cause some of the width measurements to fail. In that case save these data: 
+#plateifu  vopt Session Exp   rms   peak  snr FHI  logMHI VHI   eV    WM50 WP50 WP20 W2P50 
+8083-3702  7148 02      538.2 2.06  9.28  4.0 1.37  9.54  7062 150.78  438  257  438  193 
+
+
+WHAT TO DO FOR NON-DETECTIONS
+*****************************
+** Note the rms eg. example below.
+
+GBTIDL -> stats,/full (for rms)
+
+** and the HImasslimit: 
+
+GBTIDL -> HImasslimit,1.57,9653.9
+ Assuming rms in mJy =       1.57000
+LUMDIST: H0: 70 Omega_m: 0.30 Lambda0 0.70 q0: -0.55 k:  0.00
+ Distance (in Mpc) is =        141.31560
+Output is assumed width, and implied 1 sigma mass limit (log10(MHI/Msun))
+     100     200     300     400
+       8.8684551       9.1694851       9.3455764       9.4705151
+
+** Format for non-detection file: 
+#plateifu   vopt Session Exp   rms  logMlim200kms
+7991-12702  9653 02      897.0 1.58 9.17
+7991-3702   7983 02      568.2 1.69 9.03
+
+
