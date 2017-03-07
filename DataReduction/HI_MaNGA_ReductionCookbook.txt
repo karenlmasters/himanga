@@ -22,8 +22,11 @@ quickwidth.pro
 mygmeasure.pro
 myawv.pro
 GPSflag.pro
+setregion_ds.pro (added by DS)
+replace_ds.pro (added by DS)
 
-Put these in a directory in your IDL path. 
+Put these in a directory in your IDL path. There is also a setup program which compiles all these.  After starting GBTIDL, type:
+GBTIDL ->@gbtsetup
 
 *******************************
 
@@ -85,12 +88,33 @@ Normal routine:
 Clear the GBTIDL buffer:
 GBTIDL -> sclear
 
+*****If data all from one session*****
 Grab all the data from this galaxy and average it.
 mygetps,7,3
 
 This will look very different from the output of quicklook, since we will later do 
 significant smoothing in the frequency direction (which is done as part of quickly). But for the final reduction, first we want to remove bad channels.
 
+*****if data from multiple sessions*****
+You will need to load in each file, read in the scans, accumulate, and average. This is basically what quicklook does, but quicklook cannot handle data from more than one night.  A set of commands to process the data will look something like this:
+
+sclear                   ;clears any existing data from buffer
+offline,’AGBT17A_012_05’ ;reads in the data file
+for i=36,39,2 do begin   ;loop through the relevant scans. We go in steps of two because the data come in ON/OFF pairs
+	getps,i,plnum=0  ;load first polarization
+	accum            ;add to stack
+	getps,i,plnum=1  ;load second polarization
+	accum            ;add to stack
+endfor
+
+offline,’AGBT27A_012_10’ ;load second data file
+for i=19,20,2 do begin
+	getps,i,plnum=0
+	accum
+	getps,i,plnum=1
+	accum
+endfor
+ave   ;average all scans
 
 To check what you have accumulated: 
 
@@ -149,6 +173,9 @@ GBTIDL -> rfispike (if needed)
 ** (you'll have to rezoom a couple of times probably. Once you're done 
 ** save the spectrum to the output file
 
+Alternatively, if you want to type in the channels to be removed, you can use:
+GBTIDL -> replace,ch1,ch2
+where ch1 and ch2 are the start/end indices. 
 
 When you are happy it’s all clean: 
 GBTIDL -> keep
@@ -191,6 +218,10 @@ Use the left button to mark the region and the right button to exit
 ** any of it. If there is a lot of structure we may want to exclude the outer 
 ** regions of the spectrum (only the signal is important), but usually fitting most 
 ** of the signal free spectrum is fine.
+
+**You can also run
+GBTIDL -> setregion,list=list
+**The list variable will store the regions you set in case you want to note these down
 
 ** Now try baselines of different shapes
 GBTIDL -> bshape,nfit=1
