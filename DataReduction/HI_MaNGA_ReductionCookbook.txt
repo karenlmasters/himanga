@@ -258,7 +258,7 @@ himasslimit.pro
 ** First measure the peak flux and gain. Gain is used to covert from antenna 
 ** temperature to mJy (milli-Janskys) which is the flux unit of favour for radio 
 ** astronomers. You divide the flux in K by the gain to get the flux in Jy (ie gain 
-** is in K/Jy; basically it measures the sensitiviy of the telescope, and it 
+** is in K/Jy; basically it measures the sensitivity of the telescope, and it 
 ** depends on zenith angle which is why we calculate it for each separate galaxy.) 
 
 GBTIDL -> getpeak
